@@ -4,23 +4,38 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-def sendUpdate(msg, server, fromAddr, toAddr):
+
+def initPivotValue():
+    global pivotValue
     req = requests.get("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD")
+    pivotValue = req.json()["USD"]
+    #print pivotValue
 
-    msg.set_payload(MIMEText(req.text))
+def sendUpdate(msg, server, fromAddr, toAddr):
+    global pivotValue
+    
+    req = requests.get("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD")
+    currentValue = req.json()["USD"]    
 
-    server.sendmail(fromAddr, toAddr, msg.as_string())
+    percentChange = abs(1 - currentValue / pivotValue)
 
-    print "Sent: " + req.text
+    if percentChange >= 0.2:
+        sendString = "Pivot Value: $" + str(pivotValue) + "\nCurrent Value: $" + str(currentValue)
+        #print sendString
+        
+        pivotValue = currentValue
+    
+        msg.set_payload(MIMEText(sendString))
+        server.sendmail(fromAddr, toAddr, msg.as_string()) 
 
 
-fromAddr = "fromAddr"
-toAddr = "toAddr"
+fromAddr = "from_addr"
+toAddr = "to_addr"
 
 msg = MIMEMultipart()
 msg["From"] = fromAddr
 msg["To"] = toAddr
-msg["Subject"] = "Testing"
+msg["Subject"] = "Ethereum Notification"
 
 senderAddr = fromAddr
 senderPasswd = "password"
@@ -30,8 +45,10 @@ server.ehlo()
 server.starttls()
 server.login(senderAddr, senderPasswd)
 
+initPivotValue()
+
 scheduler = BlockingScheduler()
-scheduler.add_job(sendUpdate, "interval", [msg, server, fromAddr, toAddr], seconds=10)
+scheduler.add_job(sendUpdate, "interval", [msg, server, fromAddr, toAddr], minutes=30)
 scheduler.start()
 
 server.close()
