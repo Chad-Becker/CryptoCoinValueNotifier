@@ -1,0 +1,25 @@
+{
+	"url" : {
+		"btc" : "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD",
+		"eth" : "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD",
+		"ltc" : "https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=USD"
+	},
+	"comparableCurrency" : {
+		"usd" : "USD"
+	},
+	"threshold" : 0.2,
+	"email" : {
+		"fromAddr" : "from_addr",
+		"toAddr" : "to_addr",
+		"subject" : {
+			"btc" : "Bitcoin Notification",
+			"eth" : "Ethereum Notification",
+			"ltc" : "Litecoin Notification"
+		},
+		"passwd" : "password"
+	},
+	"interval" : {
+		"sec" : 2,
+		"min" : 30
+	}
+}

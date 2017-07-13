@@ -1,3 +1,4 @@
+import json
 import requests
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -7,19 +8,20 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 def initPivotValue():
     global pivotValue
-    req = requests.get("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD")
-    pivotValue = req.json()["USD"]
+    global config
+    req = requests.get(config["url"]["eth"])
+    pivotValue = req.json()[config["comparableCurrency"]["usd"]]
     #print pivotValue
 
 def sendUpdate(msg, server, fromAddr, toAddr):
     global pivotValue
     
-    req = requests.get("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD")
-    currentValue = req.json()["USD"]    
+    req = requests.get(config["url"]["eth"])
+    currentValue = req.json()[config["comparableCurrency"]["usd"]]    
 
     percentChange = abs(1 - currentValue / pivotValue)
 
-    if percentChange >= 0.2:
+    if percentChange >= config["threshold"]:
         sendString = "Pivot Value: $" + str(pivotValue) + "\nCurrent Value: $" + str(currentValue)
         #print sendString
         
@@ -29,16 +31,19 @@ def sendUpdate(msg, server, fromAddr, toAddr):
         server.sendmail(fromAddr, toAddr, msg.as_string()) 
 
 
-fromAddr = "from_addr"
-toAddr = "to_addr"
+fObj = open("NotifierConfig.json", "r")
+config = json.load(fObj)
+
+fromAddr = config["email"]["fromAddr"]
+toAddr = config["email"]["toAddr"]
 
 msg = MIMEMultipart()
 msg["From"] = fromAddr
 msg["To"] = toAddr
-msg["Subject"] = "Ethereum Notification"
+msg["Subject"] = config["email"]["subject"]["eth"]
 
 senderAddr = fromAddr
-senderPasswd = "password"
+senderPasswd = config["email"]["passwd"]
 
 server = smtplib.SMTP("smtp.gmail.com", 587)
 server.ehlo()
@@ -48,7 +53,7 @@ server.login(senderAddr, senderPasswd)
 initPivotValue()
 
 scheduler = BlockingScheduler()
-scheduler.add_job(sendUpdate, "interval", [msg, server, fromAddr, toAddr], minutes=30)
+scheduler.add_job(sendUpdate, "interval", [msg, server, fromAddr, toAddr], minutes=config["interval"]["min"])
 scheduler.start()
 
 server.close()
